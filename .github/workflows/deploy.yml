@@ -1,0 +1,55 @@
+name: StudySync CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pytest
+        run: pytest tests/ -v --cov=studytimer_analytics --cov-fail-under=70
+        env:
+          DJANGO_SETTINGS_MODULE: studysync.settings
+          SECRET_KEY: test-secret-key-for-ci
+          DEBUG: "True"
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/ubuntu/studysync
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            export $(cat .env | xargs)
+            python manage.py migrate --noinput
+            python manage.py collectstatic --noinput
+            sudo systemctl restart studysync
+            sudo systemctl reload nginx
+            echo "✅ Deployment complete"

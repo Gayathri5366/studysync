@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Daily Report — StudySync{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-calendar-day me-2 text-primary"></i>Daily Report</h2>
+            <form class="d-flex gap-2" method="get">
+                <input type="date" name="date" class="form-control" value="{{ report_date|date:'Y-m-d' }}">
+                <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+            </form>
+        </div>
+
+        <h5 class="text-muted mb-3">{{ report_date|date:"l, d F Y" }}</h5>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="display-6 fw-bold text-primary">{{ total_formatted }}</div>
+                    <div class="text-muted small">Total Study Time</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="display-6 fw-bold text-success">{{ report.session_count }}</div>
+                    <div class="text-muted small">Sessions</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="display-6 fw-bold text-warning">{{ avg_formatted }}</div>
+                    <div class="text-muted small">Avg Session</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="display-6 fw-bold text-info">{{ report.subject_breakdown|length }}</div>
+                    <div class="text-muted small">Subjects</div>
+                </div>
+            </div>
+        </div>
+
+        {% if report.session_count > 0 %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h6 class="card-title mb-3"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Subject Breakdown (minutes)</h6>
+                <canvas id="subjectChart" height="100"></canvas>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>No sessions recorded for this date.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ctx = document.getElementById('subjectChart');
+if (ctx) {
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [{
+                label: 'Minutes',
+                data: {{ chart_data|safe }},
+                backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes' } } }
+        }
+    });
+}
+</script>
+{% endblock %}

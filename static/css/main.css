@@ -1,0 +1,34 @@
+/* StudySync — main.css */
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.navbar-brand { letter-spacing: 1px; font-size: 1.3rem; }
+
+.card { border-radius: 12px; transition: box-shadow 0.2s; }
+.card-hover:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; transform: translateY(-2px); transition: all 0.2s; }
+
+#timer-display {
+    font-size: 5rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(255, 193, 7, 0.6);
+}
+
+.blink { animation: blink-anim 1.2s step-start infinite; }
+@keyframes blink-anim { 50% { opacity: 0; } }
+
+.footer { font-size: 0.8rem; }
+
+.font-monospace { font-family: 'Courier New', monospace; }
+
+.badge { font-size: 0.78rem; }
+
+/* Report stat cards */
+.display-6 { font-size: 1.5rem !important; }
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+    #timer-display { font-size: 3rem; }
+}

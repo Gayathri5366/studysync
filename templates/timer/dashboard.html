@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — StudySync{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="mb-4"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h2>
+
+        {% if active_session %}
+        <!-- Active Session Timer -->
+        <div class="card shadow border-0 mb-4 bg-dark text-white">
+            <div class="card-body text-center py-5">
+                <div class="badge bg-success mb-3 fs-6 px-3 py-2">
+                    <i class="bi bi-record-circle-fill me-1 blink"></i> LIVE SESSION
+                </div>
+                <h4 class="text-warning mb-1">{{ active_session.subject }}</h4>
+                <div id="timer-display" class="display-1 fw-bold font-monospace my-3">
+                    {{ elapsed_seconds|floatformat:0 }}
+                </div>
+                <p class="text-muted small mb-4">Started: {{ active_session.started_at|date:"H:i, d M Y" }}</p>
+                <form method="post" action="/session/stop/">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-lg px-5">
+                        <i class="bi bi-stop-circle-fill me-2"></i>Stop Session
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // FR-05: Real-time timer, syncs with DB on load
+            let elapsed = {{ elapsed_seconds }};
+            const display = document.getElementById('timer-display');
+
+            function formatHMS(s) {
+                const h = Math.floor(s / 3600).toString().padStart(2, '0');
+                const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+                const sec = (s % 60).toString().padStart(2, '0');
+                return `${h}:${m}:${sec}`;
+            }
+
+            display.textContent = formatHMS(elapsed);
+            setInterval(() => {
+                elapsed++;
+                display.textContent = formatHMS(elapsed);
+            }, 1000);
+
+            // Sync with DB every 60s (NFR-05)
+            setInterval(async () => {
+                try {
+                    const res = await fetch('/session/status/');
+                    const data = await res.json();
+                    if (data.active) elapsed = data.elapsed;
+                } catch(e) {}
+            }, 60000);
+        </script>
+
+        {% else %}
+        <!-- Start Session Form -->
+        <div class="card shadow border-0 mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-play-circle me-2"></i><strong>Start a Study Session</strong>
+            </div>
+            <div class="card-body py-4">
+                <form method="post" action="/session/start/">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.subject.id_for_label }}" class="form-label fw-semibold">Subject / Topic</label>
+                        {{ form.subject }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-play-fill me-2"></i>Start Session
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <a href="/reports/daily/" class="card card-hover text-decoration-none text-dark h-100">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-calendar-day display-5 text-primary"></i>
+                        <h6 class="mt-2">Daily Report</h6>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/reports/weekly/" class="card card-hover text-decoration-none text-dark h-100">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-calendar-week display-5 text-success"></i>
+                        <h6 class="mt-2">Weekly Report</h6>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/history/" class="card card-hover text-decoration-none text-dark h-100">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-list-ul display-5 text-warning"></i>
+                        <h6 class="mt-2">Session History</h6>
+                    </div>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

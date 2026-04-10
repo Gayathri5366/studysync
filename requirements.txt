@@ -1,0 +1,22 @@
+# StudySync — requirements.txt
+# Django 4.x + Python 3.13 | AWS SNS | AWS S3 | PostgreSQL
+
+# Core
+Django==4.2.16
+gunicorn==21.2.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# AWS (SNS + S3)
+boto3==1.34.0
+django-storages==1.14.2
+
+# Testing
+pytest==7.4.4
+pytest-django==4.7.0
+pytest-cov==4.1.0
+
+# Linting
+flake8==7.0.0
+studytimer-analytics==1.0.3

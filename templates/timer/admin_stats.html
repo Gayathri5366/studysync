@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Admin Stats — StudySync{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-bar-chart-line me-2 text-danger"></i>System Statistics</h2>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center py-4">
+            <div class="display-4 fw-bold text-primary">{{ total_users }}</div>
+            <div class="text-muted">Registered Users</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center py-4">
+            <div class="display-4 fw-bold text-success">{{ total_sessions }}</div>
+            <div class="text-muted">Completed Sessions</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center py-4">
+            <div class="display-4 fw-bold text-warning">{{ active_sessions }}</div>
+            <div class="text-muted">Active Sessions Now</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
