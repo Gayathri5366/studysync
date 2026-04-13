@@ -130,6 +130,16 @@ AWS_SNS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
 SNS_STUDENT_TOPIC_ARN = os.environ.get('SNS_STUDENT_TOPIC_ARN', '')
 SNS_ADMIN_TOPIC_ARN = os.environ.get('SNS_ADMIN_TOPIC_ARN', '')
 
+# AWS CloudWatch
+AWS_CLOUDWATCH_REGION = os.environ.get('AWS_CLOUDWATCH_REGION', 'eu-west-1')
+CLOUDWATCH_ENABLED = os.environ.get('CLOUDWATCH_ENABLED', 'False') == 'True'
+CLOUDWATCH_ENV = os.environ.get('CLOUDWATCH_ENV', 'production')
+
+# AWS VPC (set after running timer/vpc_config.py)
+VPC_ID = os.environ.get('VPC_ID', '')
+VPC_SUBNET_ID = os.environ.get('VPC_SUBNET_ID', '')
+VPC_SECURITY_GROUP_ID = os.environ.get('VPC_SECURITY_GROUP_ID', '')
+
 # Logging → AWS CloudWatch via Elastic Beanstalk
 LOGGING = {
     'version': 1,

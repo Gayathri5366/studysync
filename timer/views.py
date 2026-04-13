@@ -18,7 +18,7 @@ from django.core.paginator import Paginator
 
 from .models import StudySession, UserProfile
 from .forms import RegisterForm, ProfileForm, SessionStartForm
-from . import sns_service
+from . import sns_service, cloudwatch_service
 from studytimer_analytics.aggregators import ReportAggregator
 from studytimer_analytics.evaluators import StudyGoalEvaluator
 from studytimer_analytics.formatters import DurationFormatter
@@ -60,6 +60,9 @@ def dashboard(request):
     elapsed = active_session.get_elapsed_seconds() if active_session else 0
     form = SessionStartForm()
 
+    active_count = StudySession.objects.filter(status=StudySession.STATUS_ACTIVE).count()
+    cloudwatch_service.record_active_sessions(active_count)
+
     context = {
         'active_session': active_session,
         'elapsed_seconds': elapsed,
@@ -85,6 +88,7 @@ def start_session(request):
             )
             logger.info(f"Session started: user={request.user.username} session_id={session.pk}")
             sns_service.notify_session_started(request.user, session)
+            cloudwatch_service.record_session_started(request.user, session)
             messages.success(request, f"Study session started! Subject: {session.subject}")
     return redirect('dashboard')
 
@@ -101,6 +105,7 @@ def stop_session(request):
         duration = session.stop()
         logger.info(f"Session stopped: user={request.user.username} session_id={session.pk} duration={duration}s")
         sns_service.notify_session_completed(request.user, session)
+        cloudwatch_service.record_session_completed(request.user, session)
 
         # Check goals after session (FR-12)
         _check_and_notify_goals(request.user)
@@ -122,11 +127,13 @@ def _check_and_notify_goals(user):
         daily_minutes = daily_report['total_seconds'] // 60
         if evaluator.is_goal_achieved(daily_minutes, profile.daily_goal_minutes):
             sns_service.notify_goal_achieved(user, 'daily', daily_minutes, profile.daily_goal_minutes)
+            cloudwatch_service.record_goal_achieved(user, 'daily')
 
         weekly_report = aggregator.weekly_report(today)
         weekly_minutes = weekly_report['total_seconds'] // 60
         if evaluator.is_goal_achieved(weekly_minutes, profile.weekly_goal_minutes):
             sns_service.notify_goal_achieved(user, 'weekly', weekly_minutes, profile.weekly_goal_minutes)
+            cloudwatch_service.record_goal_achieved(user, 'weekly')
     except Exception as exc:
         logger.error(f"Goal check failed for {user.username}: {exc}")
 
