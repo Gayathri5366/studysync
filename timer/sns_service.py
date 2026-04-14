@@ -1,38 +1,29 @@
 """
 StudySync SNS Service
 Handles all AWS SNS publish operations for session events, goal achievements,
-and admin alerts. Replaces the previous SES email layer entirely.
+and admin alerts.
 """
 
 import boto3
 import logging
-import json
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
 def _get_sns_client():
-    """Return a boto3 SNS client using settings credentials."""
-    return boto3.client(
+    """Return a boto3 SNS client using IAM role credentials."""
+    session = boto3.Session()
+    return session.client(
         'sns',
         region_name=settings.AWS_SNS_REGION,
-        aws_access_key_id=settings.AWS_SNS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SNS_SECRET_ACCESS_KEY,
     )
 
 
 def _publish(topic_arn: str, subject: str, message: str) -> bool:
     """
     Publish a message to an SNS topic.
-
-    Args:
-        topic_arn: The ARN of the target SNS topic.
-        subject:   Notification subject line.
-        message:   Notification body text.
-
-    Returns:
-        True on success, False on failure.
+    Returns True on success, False on failure.
     """
     if not topic_arn:
         logger.warning("SNS publish skipped — no topic ARN configured.")
@@ -54,11 +45,7 @@ def _publish(topic_arn: str, subject: str, message: str) -> bool:
 # ── Student Notifications ──────────────────────────────────────────────────────
 
 def notify_session_started(user, session):
-    """
-    Publish an SNS notification when a student starts a study session.
-
-    Triggered by: FR-12, FR-04
-    """
+    """Publish an SNS notification when a student starts a study session."""
     if not _should_notify(user):
         return
     subject = f"[StudySync] Session Started — {session.subject}"
@@ -73,11 +60,7 @@ def notify_session_started(user, session):
 
 
 def notify_session_completed(user, session):
-    """
-    Publish an SNS notification when a student completes a study session.
-
-    Triggered by: FR-06, FR-12
-    """
+    """Publish an SNS notification when a student completes a study session."""
     if not _should_notify(user):
         return
     from studytimer_analytics.formatters import DurationFormatter
@@ -96,18 +79,10 @@ def notify_session_completed(user, session):
 
 
 def notify_goal_achieved(user, goal_type: str, total_minutes: int, goal_minutes: int):
-    """
-    Publish an SNS notification when a student achieves a daily or weekly goal.
-
-    Triggered by: FR-12
-    Args:
-        goal_type: 'daily' or 'weekly'
-        total_minutes: Minutes studied in the period.
-        goal_minutes:  The goal target in minutes.
-    """
+    """Publish an SNS notification when a student achieves a daily or weekly goal."""
     if not _should_notify(user):
         return
-    subject = f"[StudySync] {goal_type.capitalize()} Goal Achieved! 🎉"
+    subject = f"[StudySync] {goal_type.capitalize()} Goal Achieved!"
     message = (
         f"Hi {user.get_full_name() or user.username},\n\n"
         f"Congratulations! You've achieved your {goal_type} study goal.\n"
@@ -121,13 +96,8 @@ def notify_goal_achieved(user, goal_type: str, total_minutes: int, goal_minutes:
 # ── Admin Notifications ────────────────────────────────────────────────────────
 
 def notify_admin_critical_error(error_context: dict):
-    """
-    Publish a critical error alert to the admin SNS topic.
-
-    Triggered by: AR-04, NFR-07
-    Args:
-        error_context: Dict with keys like 'error', 'module', 'user_id'.
-    """
+    """Publish a critical error alert to the admin SNS topic."""
+    import json
     subject = "[StudySync ALERT] Critical Error Detected"
     message = (
         f"A critical error was detected in StudySync.\n\n"
@@ -138,16 +108,12 @@ def notify_admin_critical_error(error_context: dict):
 
 
 def notify_admin_health_degraded(environment_health: str):
-    """
-    Publish an Elastic Beanstalk health degraded alert to the admin topic.
-
-    Triggered by: NFR-07
-    """
+    """Publish a health degraded alert to the admin topic."""
     subject = f"[StudySync ALERT] Environment Health: {environment_health}"
     message = (
-        f"AWS Elastic Beanstalk environment health has degraded.\n"
+        f"StudySync environment health has degraded.\n"
         f"Status: {environment_health}\n\n"
-        f"Check CloudWatch alarms and EB health dashboard."
+        f"Check CloudWatch alarms and EC2 health dashboard."
     )
     _publish(settings.SNS_ADMIN_TOPIC_ARN, subject, message)
 
@@ -155,7 +121,7 @@ def notify_admin_health_degraded(environment_health: str):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _should_notify(user) -> bool:
-    """Return True if the user has SNS notifications enabled (FR-11, FR-12)."""
+    """Return True if the user has SNS notifications enabled."""
     try:
         return user.profile.sns_notifications_enabled
     except Exception:
