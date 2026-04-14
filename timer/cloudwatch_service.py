@@ -20,16 +20,18 @@ def _put_metric(metric_name, value, unit, dimensions=None):
     if not getattr(settings, "CLOUDWATCH_ENABLED", False):
         logger.debug(f"CloudWatch disabled — skipping {metric_name}")
         return False
-    metric_data = {"MetricName": metric_name, "Value": value, "Unit": unit}
-    if dimensions:
-        metric_data["Dimensions"] = dimensions
-    try:
-        _get_client().put_metric_data(Namespace=NAMESPACE, MetricData=[metric_data])
-        logger.debug(f"CloudWatch metric: {metric_name}={value} {unit}")
-        return True
-    except (BotoCoreError, ClientError) as exc:
-        logger.error(f"CloudWatch failed [{metric_name}]: {exc}")
-        return False
+    import threading
+    def _send():
+        try:
+            metric_data = {"MetricName": metric_name, "Value": value, "Unit": unit}
+            if dimensions:
+                metric_data["Dimensions"] = dimensions
+            _get_client().put_metric_data(Namespace=NAMESPACE, MetricData=[metric_data])
+            logger.debug(f"CloudWatch metric: {metric_name}={value} {unit}")
+        except Exception as exc:
+            logger.error(f"CloudWatch failed [{metric_name}]: {exc}")
+    threading.Thread(target=_send, daemon=True).start()
+    return True
 
 
 def record_session_started(user, session):
